@@ -78,36 +78,58 @@ jobs:
     runs-on: ubuntu-latest
     needs: [detect-version, build-and-push]
     if: needs.detect-version.outputs.should_build == 'true'
-    strategy:
-      matrix:
-        registry:
-          - "ligouras/locize-cli"
-        platform:
-          - "linux/amd64"
-          - "linux/arm64"
     steps:
-      - name: Verify image deployment
+      - name: Verify native platform functionality
         run: |
-          echo "Verifying ${{ matrix.registry }}:${{ needs.detect-version.outputs.new_version }} on ${{ matrix.platform }}"
+          echo "Verifying ligouras/locize-cli:${{ needs.detect-version.outputs.new_version }} on native platform (linux/amd64)"
 
-          # Pull and test the specific version
-          docker pull --platform ${{ matrix.platform }} ${{ matrix.registry }}:${{ needs.detect-version.outputs.new_version }}
+          # Pull and test the native platform version
+          docker pull --platform linux/amd64 ligouras/locize-cli:${{ needs.detect-version.outputs.new_version }}
 
-          # Test basic functionality
-          VERSION_OUTPUT=$(docker run --rm --platform ${{ matrix.platform }} ${{ matrix.registry }}:${{ needs.detect-version.outputs.new_version }} --version)
+          # Test basic functionality on native platform
+          VERSION_OUTPUT=$(docker run --rm --platform linux/amd64 ligouras/locize-cli:${{ needs.detect-version.outputs.new_version }} --version)
           echo "Version output: $VERSION_OUTPUT"
 
           # Verify version matches expected
           if echo "$VERSION_OUTPUT" | grep -q "${{ needs.detect-version.outputs.new_version }}"; then
-            echo "✅ Version verification passed"
+            echo "✅ Native platform version verification passed"
           else
-            echo "❌ Version verification failed"
+            echo "❌ Native platform version verification failed"
             exit 1
           fi
 
-          # Test help command
-          docker run --rm --platform ${{ matrix.platform }} ${{ matrix.registry }}:${{ needs.detect-version.outputs.new_version }} --help > /dev/null
-          echo "✅ Help command test passed"
+          # Test help command on native platform
+          docker run --rm --platform linux/amd64 ligouras/locize-cli:${{ needs.detect-version.outputs.new_version }} --help > /dev/null
+          echo "✅ Native platform help command test passed"
+
+      - name: Verify multi-platform manifest
+        run: |
+          echo "Verifying multi-platform manifest for ligouras/locize-cli:${{ needs.detect-version.outputs.new_version }}"
+
+          # Inspect the manifest to verify both platforms exist
+          docker manifest inspect ligouras/locize-cli:${{ needs.detect-version.outputs.new_version }} > manifest.json
+
+          # Check for AMD64 platform
+          if grep -q "linux.*amd64" manifest.json; then
+            echo "✅ AMD64 platform found in manifest"
+          else
+            echo "❌ AMD64 platform missing from manifest"
+            exit 1
+          fi
+
+          # Check for ARM64 platform
+          if grep -q "linux.*arm64" manifest.json; then
+            echo "✅ ARM64 platform found in manifest"
+          else
+            echo "❌ ARM64 platform missing from manifest"
+            exit 1
+          fi
+
+          # Verify ARM64 image can be pulled (without execution)
+          docker pull --platform linux/arm64 ligouras/locize-cli:${{ needs.detect-version.outputs.new_version }}
+          echo "✅ ARM64 platform image pull successful"
+
+          echo "✅ Multi-platform verification completed successfully"
 
   update-tracking:
     runs-on: ubuntu-latest
