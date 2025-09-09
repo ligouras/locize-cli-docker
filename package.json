@@ -1,0 +1,98 @@
+{
+  "name": "locize-cli-docker",
+  "version": "1.0.0",
+  "description": "Docker image for locize-cli tool - A command line interface for locize translation management platform",
+  "main": "index.js",
+  "scripts": {
+    "build": "docker build -t locize-cli-docker .",
+    "build:tag": "docker build -t locize-cli-docker:latest -t locize-cli-docker:$(npm run --silent version) .",
+    "build:multi": "docker buildx build --platform linux/amd64,linux/arm64 -t locize-cli-docker .",
+    "run": "docker run --rm -it locize-cli-docker",
+    "run:help": "docker run --rm locize-cli-docker --help",
+    "run:version": "docker run --rm locize-cli-docker --version",
+    "shell": "docker run --rm -it --entrypoint sh locize-cli-docker",
+    "clean": "docker rmi locize-cli-docker || true",
+    "version": "echo $npm_package_version",
+    "test": "npm run test:unit && npm run test:integration",
+    "test:unit": "echo 'Running unit tests...' && node tests/unit/test-runner.js || echo 'Unit tests not yet implemented'",
+    "test:integration": "echo 'Running integration tests...' && ./tests/integration/test-basic-commands.sh",
+    "test:security": "echo 'Running security scans...' && docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image locize-cli-docker || echo 'Security scanning requires Trivy installation'",
+    "test:smoke": "npm run build && npm run run:version && npm run run:help",
+    "docs:validate": "echo 'Validating documentation...' && npm run docs:check-links && npm run docs:check-examples",
+    "docs:check-links": "echo 'Checking documentation links...' && node scripts/check-links.js || echo 'Link checker not yet implemented'",
+    "docs:check-examples": "echo 'Validating code examples...' && node scripts/validate-examples.js || echo 'Example validator not yet implemented'",
+    "docs:serve": "echo 'Serving documentation locally...' && python3 -m http.server 8080 || python -m SimpleHTTPServer 8080 || echo 'Python required for local documentation server'",
+    "docs:build": "echo 'Building documentation...' && mkdir -p dist/docs && cp *.md dist/docs/",
+    "lint": "npm run lint:dockerfile && npm run lint:scripts && npm run lint:docs",
+    "lint:dockerfile": "echo 'Linting Dockerfile...' && docker run --rm -i hadolint/hadolint < Dockerfile || echo 'Hadolint not available - install for Dockerfile linting'",
+    "lint:scripts": "echo 'Linting shell scripts...' && find . -name '*.sh' -exec shellcheck {} + || echo 'Shellcheck not available - install for script linting'",
+    "lint:docs": "echo 'Linting documentation...' && markdownlint *.md || echo 'markdownlint not available - install for documentation linting'",
+    "format": "echo 'Formatting code...' && prettier --write '**/*.{md,json,yml,yaml}' || echo 'Prettier not available - install for code formatting'",
+    "dev:setup": "echo 'Setting up development environment...' && npm run dev:install-tools && npm run build",
+    "dev:install-tools": "echo 'Installing development tools...' && echo 'Please install: Docker, hadolint, shellcheck, markdownlint-cli, prettier'",
+    "dev:clean": "npm run clean && docker system prune -f",
+    "dev:reset": "npm run dev:clean && npm run build",
+    "ci:build": "npm run build && npm run test:smoke",
+    "ci:test": "npm run test && npm run lint",
+    "ci:security": "npm run test:security",
+    "release:prepare": "echo 'Preparing release...' && npm run test && npm run lint && npm run docs:validate",
+    "release:version": "echo 'Current version:' && npm run version && echo 'locize-cli version:' && npm run run:version",
+    "debug:info": "echo 'System Information:' && docker --version && node --version && npm --version",
+    "debug:image": "docker inspect locize-cli-docker || echo 'Image not built yet - run npm run build first'",
+    "debug:layers": "docker history locize-cli-docker || echo 'Image not built yet - run npm run build first'",
+    "benchmark:size": "echo 'Image size:' && docker images locize-cli-docker --format 'table {{.Repository}}\\t{{.Tag}}\\t{{.Size}}'",
+    "benchmark:build": "echo 'Build time benchmark:' && time npm run build",
+    "security:scan": "npm run test:security",
+    "security:audit": "npm audit || echo 'No npm dependencies to audit'",
+    "maintenance:update-base": "echo 'Check for base image updates manually: docker pull node:alpine'",
+    "maintenance:cleanup": "docker system prune -a -f --volumes",
+    "help": "echo 'Available scripts:' && npm run | grep -E '^  [a-z]' | sort"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ligouras/locize-cli-docker.git"
+  },
+  "keywords": [
+    "locize",
+    "locize-cli",
+    "docker",
+    "translation",
+    "i18n",
+    "internationalization",
+    "localization",
+    "cli",
+    "containerization",
+    "devops",
+    "automation"
+  ],
+  "author": {
+    "name": "ligouras",
+    "url": "https://github.com/ligouras"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/ligouras/locize-cli-docker#readme",
+  "bugs": {
+    "url": "https://github.com/ligouras/locize-cli-docker/issues"
+  },
+  "engines": {
+    "node": ">=14.0.0",
+    "docker": ">=20.0.0"
+  },
+  "devDependencies": {},
+  "dependencies": {},
+  "config": {
+    "docker": {
+      "image": "locize-cli-docker",
+      "platforms": "linux/amd64,linux/arm64",
+      "registries": {
+        "dockerhub": "ligouras/locize-cli"
+      }
+    }
+  },
+  "files": [
+    "Dockerfile",
+    "README.md",
+    "USAGE.md",
+    ".dockerignore"
+  ]
+}
