@@ -109,16 +109,20 @@ jobs:
           # Inspect the manifest to verify both platforms exist
           docker manifest inspect ligouras/locize-cli:${{ needs.detect-version.outputs.new_version }} > manifest.json
 
-          # Check for AMD64 platform
-          if grep -q "linux.*amd64" manifest.json; then
+          # Display manifest for debugging
+          echo "Manifest contents:"
+          cat manifest.json
+
+          # Check for AMD64 platform using proper JSON structure
+          if grep -q '"architecture": "amd64"' manifest.json && grep -q '"os": "linux"' manifest.json; then
             echo "✅ AMD64 platform found in manifest"
           else
             echo "❌ AMD64 platform missing from manifest"
             exit 1
           fi
 
-          # Check for ARM64 platform
-          if grep -q "linux.*arm64" manifest.json; then
+          # Check for ARM64 platform using proper JSON structure
+          if grep -q '"architecture": "arm64"' manifest.json && grep -q '"os": "linux"' manifest.json; then
             echo "✅ ARM64 platform found in manifest"
           else
             echo "❌ ARM64 platform missing from manifest"
